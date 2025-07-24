@@ -1,0 +1,177 @@
+[gd_scene load_steps=14 format=3 uid="uid://cn28ia2rsw154"]
+
+[ext_resource type="Script" uid="uid://hv8r2te4w3h3" path="res://main.gd" id="1_ig7tw"]
+[ext_resource type="AudioStream" uid="uid://43b7yuotkk6y" path="res://sound/click.wav" id="2_1bvp3"]
+[ext_resource type="FontFile" uid="uid://bwjh6gs0vwtgj" path="res://fonts/Amatic_SC/AmaticSC-Bold.ttf" id="3_efxa6"]
+[ext_resource type="AudioStream" uid="uid://404ep6owkrvs" path="res://sound/paper.wav" id="3_lquwl"]
+[ext_resource type="AudioStream" uid="uid://bm6oy0vllyej5" path="res://sound/HmmM.mp3" id="4_5vw27"]
+[ext_resource type="FontFile" uid="uid://ddhibfg1llvpb" path="res://fonts/Shantell_Sans/static/ShantellSans-SemiBold.ttf" id="4_dg77c"]
+[ext_resource type="AudioStream" uid="uid://bxait2fwvlihp" path="res://sound/Boooo.wav" id="5_272bh"]
+[ext_resource type="AudioStream" uid="uid://x1m2sw5uwr63" path="res://sound/HmmF.mp3" id="5_kek77"]
+[ext_resource type="AudioStream" uid="uid://bacg2wl65duuh" path="res://sound/error.wav" id="6_5vw27"]
+[ext_resource type="AudioStream" uid="uid://b681gjpywcvdc" path="res://sound/portal.wav" id="7_kek77"]
+[ext_resource type="AudioStream" uid="uid://cy0ji3673fg4w" path="res://sound/Fone.mp3" id="9_kek77"]
+[ext_resource type="Texture2D" uid="uid://dqekt5uytk33m" path="res://Ofice.png" id="10_4c57u"]
+
+[sub_resource type="Theme" id="Theme_4c57u"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_ig7tw")
+
+[node name="Background" type="TextureRect" parent="."]
+z_index = -1
+z_as_relative = false
+offset_right = 1536.0
+offset_bottom = 1024.0
+localize_numeral_system = false
+mouse_filter = 2
+theme = SubResource("Theme_4c57u")
+texture = ExtResource("10_4c57u")
+metadata/_edit_use_anchors_ = true
+
+[node name="UI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1536.0
+offset_bottom = 1024.0
+
+[node name="EventLabel" type="Label" parent="UI"]
+z_index = 1
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.0677083
+anchor_top = 0.0078125
+anchor_right = 0.0638021
+anchor_bottom = 0.0107422
+offset_left = 488.0
+offset_top = 352.0
+offset_right = 1054.0
+offset_bottom = 501.0
+theme_override_fonts/font = ExtResource("4_dg77c")
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/_edit_use_anchors_ = true
+
+[node name="SoulsLabel" type="Label" parent="UI"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.0520833
+anchor_right = 0.0520833
+offset_left = 400.0
+offset_top = 128.0
+offset_right = 1136.0
+offset_bottom = 256.0
+theme_override_fonts/font = ExtResource("3_efxa6")
+theme_override_font_sizes/font_size = 50
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/_edit_use_anchors_ = true
+
+[node name="update_label" type="Label" parent="UI"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.03125
+anchor_top = -0.0078125
+anchor_right = -0.015625
+anchor_bottom = -0.0078125
+offset_left = 368.0
+offset_top = 264.0
+offset_right = 1240.0
+offset_bottom = 328.0
+theme_override_fonts/font = ExtResource("3_efxa6")
+theme_override_font_sizes/font_size = 50
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/_edit_use_anchors_ = true
+
+[node name="EventBanner" type="Panel" parent="UI"]
+layout_mode = 1
+anchors_preset = -1
+anchor_bottom = 0.0625
+offset_left = 256.0
+offset_top = 320.0
+offset_right = 1280.0
+offset_bottom = 704.0
+metadata/_edit_use_anchors_ = true
+
+[node name="BannerLabel" type="Label" parent="UI/EventBanner"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.0625
+anchor_top = -0.0175714
+anchor_right = 0.194875
+anchor_bottom = 0.158482
+offset_left = 128.0
+offset_top = 199.872
+offset_right = 760.448
+offset_bottom = 313.0
+theme_override_fonts/font = ExtResource("4_dg77c")
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/_edit_use_anchors_ = true
+
+[node name="FreeSoulButton" type="Button" parent="UI"]
+layout_mode = 0
+offset_left = 280.0
+offset_top = 808.0
+offset_right = 705.0
+offset_bottom = 898.0
+theme_override_fonts/font = ExtResource("3_efxa6")
+theme_override_font_sizes/font_size = 40
+text = "Отпустить душу 👻"
+metadata/_edit_use_anchors_ = true
+
+[node name="BuyPrinterButton" type="Button" parent="UI"]
+layout_mode = 0
+offset_left = 768.0
+offset_top = 808.0
+offset_right = 1182.0
+offset_bottom = 897.0
+theme_override_fonts/font = ExtResource("3_efxa6")
+theme_override_font_sizes/font_size = 40
+text = "Купить Духовод (10 душ)"
+metadata/_edit_use_anchors_ = true
+
+[node name="GhostsContainer" type="Sprite2D" parent="."]
+
+[node name="SoulTimer" type="Timer" parent="."]
+autostart = true
+
+[node name="EventTimer" type="Timer" parent="."]
+wait_time = 7.0
+autostart = true
+
+[node name="ClickSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_1bvp3")
+
+[node name="PaperSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_lquwl")
+
+[node name="HmmMSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_5vw27")
+
+[node name="HmmFSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_kek77")
+
+[node name="BooooSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_272bh")
+
+[node name="ErrorSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_5vw27")
+
+[node name="PortalSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_kek77")
+
+[node name="AmbientMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("9_kek77")
+autoplay = true
+parameters/looping = true
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(768, 512)

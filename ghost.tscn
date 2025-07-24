@@ -1,0 +1,25 @@
+[gd_scene load_steps=6 format=3 uid="uid://bart8s1d604b1"]
+
+[ext_resource type="Script" uid="uid://qlbctala1sry" path="res://ghost.gd" id="1_v5pp4"]
+[ext_resource type="Texture2D" uid="uid://d4k2sdrof0wc3" path="res://sprites/ghosts/Ghost_happy.png" id="2_kjq22"]
+[ext_resource type="Texture2D" uid="uid://cpqk6kb5ibat6" path="res://sprites/ghosts/Ghost_evil.png" id="3_hiw70"]
+[ext_resource type="Texture2D" uid="uid://dp7woxboadnem" path="res://sprites/ghosts/Ghost_surprised.png" id="4_jw18l"]
+[ext_resource type="Texture2D" uid="uid://dvru6v7yk0pww" path="res://sprites/ghosts/Ghost_sad.png" id="5_2jh1f"]
+
+[node name="Ghost" type="Node2D"]
+script = ExtResource("1_v5pp4")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+root_node = NodePath("../evil")
+
+[node name="happy" type="Sprite2D" parent="."]
+texture = ExtResource("2_kjq22")
+
+[node name="evil" type="Sprite2D" parent="."]
+texture = ExtResource("3_hiw70")
+
+[node name="surprised" type="Sprite2D" parent="."]
+texture = ExtResource("4_jw18l")
+
+[node name="sad" type="Sprite2D" parent="."]
+texture = ExtResource("5_2jh1f")
