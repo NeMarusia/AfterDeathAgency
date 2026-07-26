@@ -14,7 +14,6 @@ permissions:
 
 env:
   GODOT_VERSION: 4.4.1
-  HOME: /root
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,13 +30,21 @@ jobs:
         with:
           lfs: true
 
-      - name: Verify Godot environment
+      - name: Configure Godot export templates
         run: |
           set -euxo pipefail
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           godot --version
-          test -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          ls -la "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          echo "HOME=$HOME"
+          TEMPLATE_ROOT=/root/.local/share/godot/export_templates
+          find "$TEMPLATE_ROOT" -maxdepth 2 -print
+          EXPECTED="$TEMPLATE_ROOT/${GODOT_VERSION}.stable"
+          if [ ! -e "$EXPECTED" ]; then
+            SOURCE="$(find "$TEMPLATE_ROOT" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+            test -n "$SOURCE"
+            ln -s "$SOURCE" "$EXPECTED"
+          fi
+          test -e "$EXPECTED"
 
       - name: Parse and import project
         run: |
@@ -79,12 +86,21 @@ jobs:
         with:
           lfs: true
 
-      - name: Verify Godot and Android environment
+      - name: Configure Godot export templates
         run: |
           set -euxo pipefail
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           godot --version
-          test -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          echo "HOME=$HOME"
+          TEMPLATE_ROOT=/root/.local/share/godot/export_templates
+          find "$TEMPLATE_ROOT" -maxdepth 2 -print
+          EXPECTED="$TEMPLATE_ROOT/${GODOT_VERSION}.stable"
+          if [ ! -e "$EXPECTED" ]; then
+            SOURCE="$(find "$TEMPLATE_ROOT" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+            test -n "$SOURCE"
+            ln -s "$SOURCE" "$EXPECTED"
+          fi
+          test -e "$EXPECTED"
           command -v keytool
 
       - name: Prepare Android debug keystore
@@ -110,6 +126,7 @@ jobs:
       - name: Export Android APK
         run: |
           set -euxo pipefail
+          mkdir -p build/android
           godot --headless --verbose --path . --export-debug "Android" build/android/AfterDeathAgency.apk
           test -s build/android/AfterDeathAgency.apk
 
