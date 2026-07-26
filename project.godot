@@ -1,23 +1,46 @@
 ; Engine configuration file.
-; It's best edited using the editor UI and not directly,
-; since the parameters that go here are not all obvious.
-;
-; Format:
-;   [section] ; section goes between []
-;   param=value ; assign values to parameters
-
+; Edit through Godot when possible.
 config_version=5
 
 [application]
 
 config/name="Агентство пост-смертного сопровождения"
-config/version="0.1"
-run/main_scene="res://main.tscn"
-config/features=PackedStringArray("4.4", "Forward Plus")
+config/description="Сатирическая idle-игра о потусторонней бюрократии"
+config/version="0.2.0"
+run/main_scene="res://main_v2.tscn"
+config/features=PackedStringArray("4.4", "GL Compatibility")
+config/icon="res://assets/icon.svg"
+boot_splash/image="res://assets/icon.svg"
+boot_splash/bg_color=Color(0.035, 0.078, 0.086, 1)
+boot_splash/fullsize=false
 
 [display]
 
-window/size/viewport_width=1536
-window/size/viewport_height=1024
-window/stretch/mode="viewport"
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method.web="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+textures/canvas_textures/default_texture_filter=1
+
+[gui]
+
+theme/default_font_multichannel_signed_distance_field=true
+common/drop_mouse_on_gui_input_disabled=true
+
+[audio]
+
+driver/enable_input=false
+
+[application_run]
+
+disable_stdout=false
