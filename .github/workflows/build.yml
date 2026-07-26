@@ -2,7 +2,9 @@ name: Build game and deploy demo
 
 on:
   push:
-    branches: [master, agent/mobile-release-rebuild]
+    branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -12,9 +14,10 @@ permissions:
 
 env:
   GODOT_VERSION: 4.4.1
+  HOME: /root
 
 concurrency:
-  group: pages-${{ github.repository }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,21 +30,37 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-      - name: Configure Godot CI environment
+
+      - name: Verify Godot environment
         run: |
-          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
-          cp -R /root/.config/godot "$HOME/.config/godot" || true
-          cp -R "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          set -euxo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           godot --version
-          ls -la "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-      - name: Import and validate project
-        run: godot --headless --editor --quit --path .
+          test -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          ls -la "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+
+      - name: Parse and import project
+        run: |
+          set -euxo pipefail
+          godot --headless --path . --script main.gd --check-only
+          godot --headless --path . --import
+
       - name: Export web demo
         run: |
+          set -euxo pipefail
           mkdir -p build/web
           godot --headless --verbose --path . --export-release "Web" build/web/index.html
-          test -f build/web/index.html
+          test -s build/web/index.html
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfterDeathAgency-web
+          path: build/web
+          if-no-files-found: error
+
       - name: Upload Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
@@ -51,26 +70,49 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.4.1
+    env:
+      GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
+      GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+      GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
     steps:
       - uses: actions/checkout@v4
         with:
           lfs: true
-      - name: Configure Godot CI environment
+
+      - name: Verify Godot and Android environment
         run: |
-          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
-          cp -R /root/.config/godot "$HOME/.config/godot" || true
-          cp -R "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          set -euxo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           godot --version
+          test -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          command -v keytool
+
       - name: Prepare Android debug keystore
         run: |
-          mkdir -p "$HOME/.android" build/android
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$HOME/.android/debug.keystore" -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 || true
-      - name: Import and validate project
-        run: godot --headless --editor --quit --path .
+          set -euxo pipefail
+          mkdir -p /root/.android build/android
+          if [ ! -f "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" ]; then
+            keytool -genkeypair -v \
+              -keystore "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" \
+              -storepass "$GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD" \
+              -alias "$GODOT_ANDROID_KEYSTORE_DEBUG_USER" \
+              -keypass "$GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=AfterDeathAgency,C=RU"
+          fi
+
+      - name: Parse and import project
+        run: |
+          set -euxo pipefail
+          godot --headless --path . --script main.gd --check-only
+          godot --headless --path . --import
+
       - name: Export Android APK
         run: |
+          set -euxo pipefail
           godot --headless --verbose --path . --export-debug "Android" build/android/AfterDeathAgency.apk
-          test -f build/android/AfterDeathAgency.apk
+          test -s build/android/AfterDeathAgency.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -80,6 +122,7 @@ jobs:
 
   deploy:
     name: Deploy web demo
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
