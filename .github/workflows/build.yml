@@ -84,9 +84,9 @@ jobs:
       image: barichello/godot-ci:4.4.1
     env:
       HOME: /root
-      GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
-      GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
-      GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+      DEBUG_KEYSTORE: /root/.android/debug.keystore
+      DEBUG_KEY_ALIAS: androiddebugkey
+      DEBUG_KEY_PASSWORD: android
     steps:
       - uses: actions/checkout@v4
         with:
@@ -104,23 +104,23 @@ jobs:
             ln -s "$SOURCE" "$EXPECTED"
           fi
           test -e "$EXPECTED"
-          command -v keytool
+          test -d "$ANDROID_HOME/build-tools"
       - name: Prepare Android debug keystore
         run: |
           set -euxo pipefail
-          mkdir -p /root/.android build/android
-          if [ ! -f "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" ]; then
+          mkdir -p "$(dirname "$DEBUG_KEYSTORE")" build/android
+          if [ ! -f "$DEBUG_KEYSTORE" ]; then
             keytool -genkeypair -v \
-              -keystore "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" \
-              -storepass "$GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD" \
-              -alias "$GODOT_ANDROID_KEYSTORE_DEBUG_USER" \
-              -keypass "$GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD" \
+              -keystore "$DEBUG_KEYSTORE" \
+              -storepass "$DEBUG_KEY_PASSWORD" \
+              -alias "$DEBUG_KEY_ALIAS" \
+              -keypass "$DEBUG_KEY_PASSWORD" \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -dname "CN=Android Debug,O=AfterDeathAgency,C=RU"
           fi
       - name: Import project
         run: godot --headless --path . --import
-      - name: Export Android APK
+      - name: Export unsigned Android APK
         run: |
           mkdir -p build/android build/ci
           set +e
@@ -128,6 +128,18 @@ jobs:
           STATUS=${PIPESTATUS[0]}
           if [ ! -s build/android/AfterDeathAgency.apk ]; then STATUS=1; fi
           exit "$STATUS"
+      - name: Sign and verify Android APK
+        run: |
+          set -euxo pipefail
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" sign \
+            --ks "$DEBUG_KEYSTORE" \
+            --ks-key-alias "$DEBUG_KEY_ALIAS" \
+            --ks-pass "pass:$DEBUG_KEY_PASSWORD" \
+            --key-pass "pass:$DEBUG_KEY_PASSWORD" \
+            build/android/AfterDeathAgency.apk
+          "$APKSIGNER" verify --verbose --print-certs build/android/AfterDeathAgency.apk
       - name: Upload Android diagnostics
         if: always()
         uses: actions/upload-artifact@v4
