@@ -10,7 +10,7 @@ config/version="0.2.0"
 run/main_scene="res://main_v2.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://assets/icon.svg"
-boot_splash/image="res://assets/icon.svg"
+boot_splash/image="res://Ofice.png"
 boot_splash/bg_color=Color(0.035, 0.078, 0.086, 1)
 boot_splash/fullsize=false
 
