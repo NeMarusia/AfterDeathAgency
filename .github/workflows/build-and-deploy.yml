@@ -68,6 +68,19 @@ jobs:
           cat android-export.log
           exit $status
 
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: godot-export-logs
+          path: |
+            godot-check.log
+            web-export.log
+            windows-export.log
+            android-export.log
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Verify exported files
         shell: bash
         run: |
