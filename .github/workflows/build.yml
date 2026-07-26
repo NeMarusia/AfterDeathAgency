@@ -14,7 +14,6 @@ permissions:
 
 env:
   GODOT_VERSION: 4.4.1
-  HOME: /root
 
 defaults:
   run:
@@ -60,6 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.4.1
+    env:
+      HOME: /root
     steps:
       - uses: actions/checkout@v4
         with:
@@ -115,6 +116,7 @@ jobs:
     container:
       image: barichello/godot-ci:4.4.1
     env:
+      HOME: /root
       GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
       GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
       GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
