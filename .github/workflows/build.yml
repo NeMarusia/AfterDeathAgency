@@ -1,1 +1,61 @@
-name: Build
+name: Build game and deploy demo
+
+on:
+  push:
+    branches: [agent/mobile-release-rebuild]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import project
+        run: godot --headless --editor --quit --path .
+      - name: Export web demo
+        run: |
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+      - name: Prepare Android debug keystore
+        run: |
+          mkdir -p ~/.android build/android
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 || true
+      - name: Configure Android signing
+        run: |
+          godot --headless --editor --quit --path . \
+            --editor-settings android/debug_keystore="$HOME/.android/debug.keystore" \
+            --editor-settings android/debug_keystore_user="androiddebugkey" \
+            --editor-settings android/debug_keystore_pass="android"
+      - name: Export Android APK
+        run: godot --headless --path . --export-debug "Android" build/android/AfterDeathAgency.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfterDeathAgency-android
+          path: build/android/AfterDeathAgency.apk
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: export
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
