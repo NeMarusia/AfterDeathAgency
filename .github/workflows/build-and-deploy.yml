@@ -19,9 +19,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    name: Validate Godot project
+    runs-on: ubuntu-latest
+    container: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Import and parse project
+        shell: bash
+        run: |
+          set +e
+          godot --headless --editor --path . --quit > godot-check.log 2>&1
+          status=$?
+          cat godot-check.log
+          exit $status
+
   export:
     name: Export Godot builds
     runs-on: ubuntu-latest
+    needs: validate
     timeout-minutes: 30
 
     steps:
@@ -51,7 +68,7 @@ jobs:
           use_preset_export_path: true
           archive_output: false
           export_debug: true
-          verbose: true
+          verbose: false
           cache: true
 
       - name: Verify exported files
