@@ -2,7 +2,9 @@ name: Build game and deploy demo
 
 on:
   push:
-    branches: [master, agent/mobile-release-rebuild]
+    branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -13,8 +15,12 @@ permissions:
 env:
   GODOT_VERSION: 4.4.1
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
-  group: pages-${{ github.repository }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -23,25 +29,50 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.4.1
+    env:
+      HOME: /root
     steps:
       - uses: actions/checkout@v4
         with:
           lfs: true
-      - name: Configure Godot CI environment
+      - name: Configure Godot export templates
         run: |
-          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
-          cp -R /root/.config/godot "$HOME/.config/godot" || true
-          cp -R "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          set -euxo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           godot --version
-          ls -la "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-      - name: Import and validate project
-        run: godot --headless --editor --quit --path .
+          TEMPLATE_ROOT="$HOME/.local/share/godot/export_templates"
+          EXPECTED="$TEMPLATE_ROOT/${GODOT_VERSION}.stable"
+          if [ ! -e "$EXPECTED" ]; then
+            SOURCE="$(find "$TEMPLATE_ROOT" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+            test -n "$SOURCE"
+            ln -s "$SOURCE" "$EXPECTED"
+          fi
+          test -e "$EXPECTED"
+      - name: Import project
+        run: godot --headless --path . --import
       - name: Export web demo
         run: |
-          mkdir -p build/web
-          godot --headless --verbose --path . --export-release "Web" build/web/index.html
-          test -f build/web/index.html
+          mkdir -p build/web build/ci
+          set +e
+          godot --headless --verbose --path . --export-release "Web" build/web/index.html 2>&1 | tee build/ci/web-export.log
+          STATUS=${PIPESTATUS[0]}
+          if [ ! -s build/web/index.html ]; then STATUS=1; fi
+          exit "$STATUS"
+      - name: Upload web diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfterDeathAgency-web-diagnostics
+          path: build/ci/web-export.log
+          if-no-files-found: error
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfterDeathAgency-web
+          path: build/web
+          if-no-files-found: error
       - name: Upload Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
@@ -51,26 +82,77 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.4.1
+    env:
+      HOME: /root
+      DEBUG_KEYSTORE: /root/.android/debug.keystore
+      DEBUG_KEY_ALIAS: androiddebugkey
+      DEBUG_KEY_PASSWORD: android
+      GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
+      GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+      GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
     steps:
       - uses: actions/checkout@v4
         with:
           lfs: true
-      - name: Configure Godot CI environment
+      - name: Configure Godot and Android SDK
         run: |
-          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
-          cp -R /root/.config/godot "$HOME/.config/godot" || true
-          cp -R "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          set -euxo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           godot --version
+          TEMPLATE_ROOT="$HOME/.local/share/godot/export_templates"
+          EXPECTED="$TEMPLATE_ROOT/${GODOT_VERSION}.stable"
+          if [ ! -e "$EXPECTED" ]; then
+            SOURCE="$(find "$TEMPLATE_ROOT" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+            test -n "$SOURCE"
+            ln -s "$SOURCE" "$EXPECTED"
+          fi
+          test -e "$EXPECTED"
+          test -d "$ANDROID_HOME"
+          SDKMANAGER="$(find "$ANDROID_HOME" -type f -name sdkmanager | head -n 1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0"
+          test -f "$ANDROID_HOME/platforms/android-34/android.jar"
+          test -x "$ANDROID_HOME/build-tools/34.0.0/apksigner"
       - name: Prepare Android debug keystore
         run: |
-          mkdir -p "$HOME/.android" build/android
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$HOME/.android/debug.keystore" -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 || true
-      - name: Import and validate project
-        run: godot --headless --editor --quit --path .
-      - name: Export Android APK
+          set -euxo pipefail
+          mkdir -p "$(dirname "$DEBUG_KEYSTORE")" build/android
+          if [ ! -f "$DEBUG_KEYSTORE" ]; then
+            keytool -genkeypair -v \
+              -keystore "$DEBUG_KEYSTORE" \
+              -storepass "$DEBUG_KEY_PASSWORD" \
+              -alias "$DEBUG_KEY_ALIAS" \
+              -keypass "$DEBUG_KEY_PASSWORD" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=AfterDeathAgency,C=RU"
+          fi
+      - name: Import project
+        run: godot --headless --path . --import
+      - name: Export signed Android APK
         run: |
-          godot --headless --verbose --path . --export-debug "Android" build/android/AfterDeathAgency.apk
-          test -f build/android/AfterDeathAgency.apk
+          mkdir -p build/android build/ci
+          set +e
+          godot --headless --verbose --path . --export-debug "Android" build/android/AfterDeathAgency.apk 2>&1 | tee build/ci/android-export.log
+          STATUS=${PIPESTATUS[0]}
+          if [ ! -s build/android/AfterDeathAgency.apk ]; then STATUS=1; fi
+          exit "$STATUS"
+      - name: Verify Android APK signature
+        run: |
+          set -euxo pipefail
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs build/android/AfterDeathAgency.apk
+      - name: Upload Android diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfterDeathAgency-android-diagnostics
+          path: build/ci/android-export.log
+          if-no-files-found: error
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -80,6 +162,7 @@ jobs:
 
   deploy:
     name: Deploy web demo
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

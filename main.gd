@@ -382,7 +382,7 @@ func _decide(choice: int) -> void:
 	var reward := float(current_case.reward)
 	if correct:
 		combo += 1
-		var gained := reward * (1.0 + min(combo, 10) * 0.05 + departments[4].level * 0.06)
+		var gained: float = reward * (1.0 + float(mini(combo, 10)) * 0.05 + float(int(departments[4].level)) * 0.06)
 		souls += gained
 		reputation = min(100, reputation + 1)
 		if rng.randf() < 0.18:
@@ -391,8 +391,8 @@ func _decide(choice: int) -> void:
 		_show_notice("ВЕРНО  +%.0f" % gained, C_SOUL)
 	else:
 		combo = 0
-		var protection := departments[2].level * 0.08
-		var penalty := max(2.0, reward * (0.65 - min(protection, 0.45)))
+		var protection: float = float(int(departments[2].level)) * 0.08
+		var penalty: float = maxf(2.0, reward * (0.65 - minf(protection, 0.45)))
 		souls = max(0.0, souls - penalty)
 		reputation = max(0, reputation - 3)
 		_log("Маршрут оспорен комиссией: -%.0f душ." % penalty)
@@ -504,7 +504,7 @@ func _trigger_event() -> void:
 			_log("Пневмопочта доставила забытый пакет: +%d душ." % bonus)
 			_show_notice("СРОЧНАЯ ПОЧТА  +%d" % bonus, C_SOUL)
 		1:
-			var loss := min(souls, float(rng.randi_range(3, 12)))
+			var loss: float = minf(souls, float(rng.randi_range(3, 12)))
 			souls -= loss
 			_log("Архив потребовал повторную оплату формы: -%.0f душ." % loss)
 			_show_notice("АРХИВНЫЙ СБОР  -%.0f" % loss, C_RED)
@@ -517,7 +517,7 @@ func _trigger_event() -> void:
 			_log("Под столом найдена действующая гербовая печать.")
 			_show_notice("РЕДКАЯ ПЕЧАТЬ  +1", C_GOLD)
 		4:
-			var inspector_bonus := departments[2].level * 3
+			var inspector_bonus: int = int(departments[2].level) * 3
 			souls += inspector_bonus
 			_log("Проверка завершена. Судебный отдел компенсировал %d душ." % inspector_bonus)
 			_show_notice("ПРОВЕРКА ЗАВЕРШЕНА", C_GOLD)
