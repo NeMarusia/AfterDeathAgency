@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - revamp/afterlife-office-v0.2
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
 
 permissions:
@@ -80,15 +83,18 @@ jobs:
           retention-days: 30
 
       - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
 
       - name: Upload Web build for Pages
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4
         with:
           path: build/web
 
   deploy:
     name: Deploy browser demo
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
