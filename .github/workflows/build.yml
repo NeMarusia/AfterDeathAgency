@@ -87,6 +87,9 @@ jobs:
       DEBUG_KEYSTORE: /root/.android/debug.keystore
       DEBUG_KEY_ALIAS: androiddebugkey
       DEBUG_KEY_PASSWORD: android
+      GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
+      GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+      GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
     steps:
       - uses: actions/checkout@v4
         with:
@@ -114,8 +117,6 @@ jobs:
             "build-tools;34.0.0"
           test -f "$ANDROID_HOME/platforms/android-34/android.jar"
           test -x "$ANDROID_HOME/build-tools/34.0.0/apksigner"
-          find "$ANDROID_HOME/platforms" -maxdepth 1 -mindepth 1 -type d -print
-          find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d -print
       - name: Prepare Android debug keystore
         run: |
           set -euxo pipefail
@@ -131,7 +132,7 @@ jobs:
           fi
       - name: Import project
         run: godot --headless --path . --import
-      - name: Export unsigned Android APK
+      - name: Export signed Android APK
         run: |
           mkdir -p build/android build/ci
           set +e
@@ -139,17 +140,11 @@ jobs:
           STATUS=${PIPESTATUS[0]}
           if [ ! -s build/android/AfterDeathAgency.apk ]; then STATUS=1; fi
           exit "$STATUS"
-      - name: Sign and verify Android APK
+      - name: Verify Android APK signature
         run: |
           set -euxo pipefail
           APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
           test -x "$APKSIGNER"
-          "$APKSIGNER" sign \
-            --ks "$DEBUG_KEYSTORE" \
-            --ks-key-alias "$DEBUG_KEY_ALIAS" \
-            --ks-pass "pass:$DEBUG_KEY_PASSWORD" \
-            --key-pass "pass:$DEBUG_KEY_PASSWORD" \
-            build/android/AfterDeathAgency.apk
           "$APKSIGNER" verify --verbose --print-certs build/android/AfterDeathAgency.apk
       - name: Upload Android diagnostics
         if: always()
