@@ -2,7 +2,7 @@ name: Build game and deploy demo
 
 on:
   push:
-    branches: [master]
+    branches: [master, feature/original-game-progression]
   pull_request:
     branches: [master]
   workflow_dispatch:
@@ -24,8 +24,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    name: Validate original pixel-art game
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    env:
+      HOME: /root
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Configure repository
+        run: |
+          set -euxo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          godot --version
+      - name: Import project
+        run: godot --headless --path . --import
+      - name: Verify original scene and assets
+        run: godot --headless --path . --script tests/smoke_test.gd
+
   web:
     name: Export web demo
+    needs: validate
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.4.1
@@ -83,6 +105,7 @@ jobs:
 
   android:
     name: Export Android APK
+    needs: validate
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.4.1

@@ -7,6 +7,9 @@ config/version="0.1"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 
+[autoload]
+UITextSanitizer="*res://ui_text_sanitizer.gd"
+
 [display]
 window/size/viewport_width=1536
 window/size/viewport_height=1024

@@ -124,7 +124,7 @@ offset_right = 705.0
 offset_bottom = 898.0
 theme_override_fonts/font = ExtResource("3_efxa6")
 theme_override_font_sizes/font_size = 40
-text = "Отпустить душу 👻"
+text = "Отпустить душу"
 metadata/_edit_use_anchors_ = true
 
 [node name="BuyPrinterButton" type="Button" parent="UI"]
