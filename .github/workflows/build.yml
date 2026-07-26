@@ -57,10 +57,20 @@ jobs:
 
       - name: Export web demo
         run: |
-          set -euxo pipefail
-          mkdir -p build/web
-          godot --headless --verbose --path . --export-release "Web" build/web/index.html
-          test -s build/web/index.html
+          mkdir -p build/web build/ci
+          set +e
+          godot --headless --verbose --path . --export-release "Web" build/web/index.html 2>&1 | tee build/ci/web-export.log
+          STATUS=${PIPESTATUS[0]}
+          if [ ! -s build/web/index.html ]; then STATUS=1; fi
+          exit "$STATUS"
+
+      - name: Upload web diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfterDeathAgency-web-diagnostics
+          path: build/ci/web-export.log
+          if-no-files-found: error
 
       - name: Upload web build
         uses: actions/upload-artifact@v4
@@ -126,10 +136,20 @@ jobs:
 
       - name: Export Android APK
         run: |
-          set -euxo pipefail
-          mkdir -p build/android
-          godot --headless --verbose --path . --export-debug "Android" build/android/AfterDeathAgency.apk
-          test -s build/android/AfterDeathAgency.apk
+          mkdir -p build/android build/ci
+          set +e
+          godot --headless --verbose --path . --export-debug "Android" build/android/AfterDeathAgency.apk 2>&1 | tee build/ci/android-export.log
+          STATUS=${PIPESTATUS[0]}
+          if [ ! -s build/android/AfterDeathAgency.apk ]; then STATUS=1; fi
+          exit "$STATUS"
+
+      - name: Upload Android diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfterDeathAgency-android-diagnostics
+          path: build/ci/android-export.log
+          if-no-files-found: error
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
