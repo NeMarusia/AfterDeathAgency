@@ -1,0 +1,146 @@
+name: Build, test and deploy
+
+on:
+  push:
+    branches:
+      - revamp/afterlife-office-v0.2
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: afterdeathagency-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export:
+    name: Validate and export Godot builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    container: barichello/godot-ci:4.4.1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Map export templates into GitHub HOME
+        shell: bash
+        run: |
+          set -euxo pipefail
+          TEMPLATE_SOURCE="$(find /root/.local/share/godot/export_templates -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+          test -n "$TEMPLATE_SOURCE"
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          ln -sfn "$TEMPLATE_SOURCE" "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          find "$HOME/.local/share/godot/export_templates/4.4.1.stable" -maxdepth 1 -type f -printf '%f\n' | sort
+
+      - name: Import and parse project
+        shell: bash
+        run: |
+          set +e
+          godot --headless --editor --path . --quit > godot-check.log 2>&1
+          status=$?
+          cat godot-check.log
+          exit $status
+
+      - name: Export Web
+        shell: bash
+        run: |
+          mkdir -p build/web
+          set +e
+          godot --headless --path . --export-debug "Web" build/web/index.html > web-export.log 2>&1
+          status=$?
+          cat web-export.log
+          exit $status
+
+      - name: Export Windows
+        shell: bash
+        run: |
+          mkdir -p build/windows
+          set +e
+          godot --headless --path . --export-debug "Windows" build/windows/AfterDeathAgency.exe > windows-export.log 2>&1
+          status=$?
+          cat windows-export.log
+          exit $status
+
+      - name: Export Android APK
+        shell: bash
+        run: |
+          mkdir -p build/android
+          set +e
+          godot --headless --path . --export-debug "Android" build/android/AfterDeathAgency.apk > android-export.log 2>&1
+          status=$?
+          cat android-export.log
+          exit $status
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: godot-export-logs
+          path: |
+            godot-check.log
+            web-export.log
+            windows-export.log
+            android-export.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Verify exported files
+        shell: bash
+        run: |
+          test -f build/web/index.html
+          test -f build/android/AfterDeathAgency.apk
+          test -f build/windows/AfterDeathAgency.exe
+          find build -maxdepth 3 -type f -printf '%p %k KB\n' | sort
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: AfterDeathAgency-Android-debug
+          path: build/android/AfterDeathAgency.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Package Windows build
+        shell: bash
+        run: |
+          cd build/windows
+          zip -9 -r ../AfterDeathAgency-Windows.zip .
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v7
+        with:
+          name: AfterDeathAgency-Windows
+          path: build/AfterDeathAgency-Windows.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Upload Web build for Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/web
+
+  deploy:
+    name: Deploy browser demo
+    if: github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: export
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
