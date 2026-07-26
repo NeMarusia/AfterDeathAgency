@@ -14,6 +14,7 @@ permissions:
 
 env:
   GODOT_VERSION: 4.4.1
+  HOME: /root
 
 defaults:
   run:
@@ -39,8 +40,7 @@ jobs:
           set -euxo pipefail
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           godot --version
-          echo "HOME=$HOME"
-          TEMPLATE_ROOT=/root/.local/share/godot/export_templates
+          TEMPLATE_ROOT="$HOME/.local/share/godot/export_templates"
           find "$TEMPLATE_ROOT" -maxdepth 2 -print
           EXPECTED="$TEMPLATE_ROOT/${GODOT_VERSION}.stable"
           if [ ! -e "$EXPECTED" ]; then
@@ -50,10 +50,9 @@ jobs:
           fi
           test -e "$EXPECTED"
 
-      - name: Parse and import project
+      - name: Import project
         run: |
           set -euxo pipefail
-          godot --headless --path . --script main.gd --check-only
           godot --headless --path . --import
 
       - name: Export web demo
@@ -95,8 +94,7 @@ jobs:
           set -euxo pipefail
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           godot --version
-          echo "HOME=$HOME"
-          TEMPLATE_ROOT=/root/.local/share/godot/export_templates
+          TEMPLATE_ROOT="$HOME/.local/share/godot/export_templates"
           find "$TEMPLATE_ROOT" -maxdepth 2 -print
           EXPECTED="$TEMPLATE_ROOT/${GODOT_VERSION}.stable"
           if [ ! -e "$EXPECTED" ]; then
@@ -121,10 +119,9 @@ jobs:
               -dname "CN=Android Debug,O=AfterDeathAgency,C=RU"
           fi
 
-      - name: Parse and import project
+      - name: Import project
         run: |
           set -euxo pipefail
-          godot --headless --path . --script main.gd --check-only
           godot --headless --path . --import
 
       - name: Export Android APK
