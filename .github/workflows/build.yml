@@ -15,6 +15,10 @@ permissions:
 env:
   GODOT_VERSION: 4.4.1
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
